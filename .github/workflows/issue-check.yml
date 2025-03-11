@@ -38,6 +38,7 @@ jobs:
               });
               fetchedIssues = data;
               issues = issues.concat(fetchedIssues);
+              console.log(`Fetched ${fetchedIssues.length} issues from page ${page}`);
               page++;
             } while (fetchedIssues.length === 5);
 
