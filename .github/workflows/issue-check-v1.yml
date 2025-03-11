@@ -1,4 +1,4 @@
-name: Check Similar Issues
+name: Check Similar Issues v1
 
 permissions:
   issues: write
@@ -11,7 +11,7 @@ jobs:
   check-similar:
     runs-on: ubuntu-latest
     steps:
-      - name: Check for similar issues
+      - name: Check for similar issues v1
         if: github.event.action == 'opened' || (github.event.action == 'labeled' && github.event.label.name == 'check for related')
         uses: actions/github-script@v7
         with:
@@ -89,6 +89,8 @@ jobs:
 
             if (similarIssues.length > 0) {
               let commentBody = "🔍 **Similar Issues Found**\n\n";
+              commentBody += "The following issues have similar titles and may be duplicates. Please review these before proceeding.\n\n";
+              commentBody += "**NOTE:** this automated check only looks for 2 matching words in the summary, so it may miss some issues that are similar.\n\n";
               commentBody += "| Issue | Summary | Labels |\n";
               commentBody += "|-------|---------|--------|\n";
 
