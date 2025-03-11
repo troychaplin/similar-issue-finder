@@ -53,12 +53,16 @@ jobs:
             console.log(`Found ${similarIssues.length} similar issues`);
 
             if (similarIssues.length > 0) {
-              let commentBody = "🔍 **Similar issues found:**\n";
+              let commentBody = "🔍 **Similar Issues Found**\n\n";
+              commentBody += "| Issue | Summary | Labels |\n";
+              commentBody += "|-------|---------|--------|\n";
+              
               similarIssues.forEach(issue => {
-                commentBody += `- [#${issue.number}](${issue.html_url}) - ${issue.title}\n`;
+                const labels = issue.labels.map(label => `\`${label.name}\``).join(', ') || '-';
+                commentBody += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
               });
 
-              commentBody += "\nPlease check these before proceeding! 🚀";
+              commentBody += "\n Please review these similar issues before proceeding!";
 
               console.log('Creating comment with similar issues');
               
