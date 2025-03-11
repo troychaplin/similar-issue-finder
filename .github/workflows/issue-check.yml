@@ -20,6 +20,8 @@ jobs:
             const repo = context.repo.repo;
             const owner = context.repo.owner;
 
+            console.log(`Checking for issues similar to: "${issueTitle}" (Issue #${issueNumber})`);
+
             // Fetch all open issues
             const { data: issues } = await github.rest.issues.listForRepo({
               owner,
@@ -28,10 +30,27 @@ jobs:
               per_page: 50
             });
 
-            const similarIssues = issues.filter(issue =>
-              issue.number !== issueNumber &&
-              issue.title.toLowerCase().includes(issueTitle.toLowerCase().split(" ")[0]) // Basic similarity check
-            );
+            console.log(`Found ${issues.length} total open issues`);
+
+            // Split the new issue title into words and filter out common words
+            const titleWords = issueTitle.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+            console.log(`Keywords from new issue: ${titleWords.join(', ')}`);
+
+            const similarIssues = issues.filter(issue => {
+              if (issue.number === issueNumber) return false;
+              
+              const otherTitle = issue.title.toLowerCase();
+              // Check if any of the words from the new issue title appear in the other issue
+              const matches = titleWords.some(word => otherTitle.includes(word));
+              
+              if (matches) {
+                console.log(`Match found: Issue #${issue.number} - "${issue.title}"`);
+              }
+              
+              return matches;
+            });
+
+            console.log(`Found ${similarIssues.length} similar issues`);
 
             if (similarIssues.length > 0) {
               let commentBody = "🔍 **Similar issues found:**\n";
@@ -41,10 +60,16 @@ jobs:
 
               commentBody += "\nPlease check these before proceeding! 🚀";
 
+              console.log('Creating comment with similar issues');
+              
               await github.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: issueNumber,
                 body: commentBody
               });
+              
+              console.log('Comment created successfully');
+            } else {
+              console.log('No similar issues found - no comment needed');
             }
