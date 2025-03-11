@@ -10,7 +10,6 @@ jobs:
       - name: Check for similar issues
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issueTitle = context.payload.issue.title;
             const issueNumber = context.payload.issue.number;
