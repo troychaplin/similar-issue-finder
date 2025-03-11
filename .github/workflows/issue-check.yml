@@ -23,13 +23,23 @@ jobs:
 
             console.log(`Checking for issues similar to: "${issueTitle}" (Issue #${issueNumber})`);
 
-            // Fetch all open issues
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              state: "open",
-              per_page: 50
-            });
+            // Fetch all open issues with pagination
+            let issues = [];
+            let page = 1;
+            let fetchedIssues;
+
+            do {
+              const { data } = await github.rest.issues.listForRepo({
+                owner,
+                repo,
+                state: "open",
+                per_page: 5,
+                page: page
+              });
+              fetchedIssues = data;
+              issues = issues.concat(fetchedIssues);
+              page++;
+            } while (fetchedIssues.length === 100);
 
             console.log(`Found ${issues.length} total open issues`);
 
