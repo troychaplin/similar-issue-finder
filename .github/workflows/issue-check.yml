@@ -39,7 +39,7 @@ jobs:
               fetchedIssues = data;
               issues = issues.concat(fetchedIssues);
               page++;
-            } while (fetchedIssues.length === 100);
+            } while (fetchedIssues.length === 5);
 
             console.log(`Found ${issues.length} total open issues`);
 
