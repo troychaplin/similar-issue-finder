@@ -35,14 +35,22 @@ jobs:
             }
 
             // Function to create a table with issues
-            function createIssueTable(issues) {
+            function createIssueTable(issues, versionTableOnly = false) {
               if (issues.length === 0) return '';
               
               let table = "| Issue | Summary | Labels |\n";
               table += "|-------|---------|--------|\n";
               
               issues.forEach(issue => {
-                const labels = issue.labels.map(label => `\`${label.name}\``).join(', ') || '-';
+                const labels = versionTableOnly 
+                  ? issue.labels
+                      .filter(label => isVersionLabel(label))
+                      .map(label => `\`${label.name}\``)
+                      .join(', ') || '-'
+                  : issue.labels
+                      .map(label => `\`${label.name}\``)
+                      .join(', ') || '-';
+                
                 table += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
               });
               
@@ -139,13 +147,13 @@ jobs:
 
               if (versionIssues.length > 0) {
                 commentBody += "### 📌 Version-Specific Issues\n\n";
-                commentBody += createIssueTable(versionIssues);
+                commentBody += createIssueTable(versionIssues, true);
                 commentBody += "\n";
               }
 
               if (otherIssues.length > 0) {
                 commentBody += "### 📑 Other Related Issues\n\n";
-                commentBody += createIssueTable(otherIssues);
+                commentBody += createIssueTable(otherIssues, false);
                 commentBody += "\n";
               }
 
