@@ -1,4 +1,8 @@
 name: Check Similar Issues
+
+permissions:
+  issues: write
+  
 on:
   issues:
     types: [opened]
