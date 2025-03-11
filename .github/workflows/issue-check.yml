@@ -32,22 +32,45 @@ jobs:
 
             console.log(`Found ${issues.length} total open issues`);
 
-            // Split the new issue title into words and filter out common words
-            const titleWords = issueTitle.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+            // Common words to ignore
+            const commonWords = new Set([
+              'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+              'is', 'are', 'was', 'were', 'will', 'be', 'has', 'have', 'had',
+              'this', 'that', 'these', 'those', 'it', 'its', 'with', 'from'
+            ]);
+
+            // Split and clean the title words
+            const titleWords = issueTitle
+              .toLowerCase()
+              .split(/\s+/)
+              .filter(word => {
+                // Remove common words and require words to be at least 3 characters
+                return !commonWords.has(word) && word.length > 2;
+              });
+
             console.log(`Keywords from new issue: ${titleWords.join(', ')}`);
 
             const similarIssues = issues.filter(issue => {
               if (issue.number === issueNumber) return false;
               
               const otherTitle = issue.title.toLowerCase();
-              // Check if any of the words from the new issue title appear in the other issue
-              const matches = titleWords.some(word => otherTitle.includes(word));
+              const otherWords = otherTitle.split(/\s+/);
               
-              if (matches) {
+              // Count how many words match
+              const matchingWords = titleWords.filter(word => 
+                otherWords.includes(word)
+              );
+              
+              // Require at least 2 matching words or 1 if the title only has 1 significant word
+              const minMatchesNeeded = titleWords.length === 1 ? 1 : 2;
+              const isMatch = matchingWords.length >= minMatchesNeeded;
+              
+              if (isMatch) {
                 console.log(`Match found: Issue #${issue.number} - "${issue.title}"`);
+                console.log(`Matching words: ${matchingWords.join(', ')}`);
               }
               
-              return matches;
+              return isMatch;
             });
 
             console.log(`Found ${similarIssues.length} similar issues`);
