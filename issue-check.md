@@ -1,3 +1,4 @@
+```
 name: Check Similar Issues
 
 permissions:
@@ -64,24 +65,24 @@ jobs:
 
             const similarIssues = issues.filter(issue => {
               if (issue.number === issueNumber) return false;
-              
+
               const otherTitle = issue.title.toLowerCase();
               const otherWords = otherTitle.split(/\s+/);
-              
+
               // Count how many words match
-              const matchingWords = titleWords.filter(word => 
+              const matchingWords = titleWords.filter(word =>
                 otherWords.includes(word)
               );
-              
+
               // Require at least 2 matching words or 1 if the title only has 1 significant word
               const minMatchesNeeded = titleWords.length === 1 ? 1 : 2;
               const isMatch = matchingWords.length >= minMatchesNeeded;
-              
+
               if (isMatch) {
                 console.log(`Match found: Issue #${issue.number} - "${issue.title}"`);
                 console.log(`Matching words: ${matchingWords.join(', ')}`);
               }
-              
+
               return isMatch;
             });
 
@@ -91,7 +92,7 @@ jobs:
               let commentBody = "🔍 **Similar Issues Found**\n\n";
               commentBody += "| Issue | Summary | Labels |\n";
               commentBody += "|-------|---------|--------|\n";
-              
+
               similarIssues.forEach(issue => {
                 const labels = issue.labels.map(label => `\`${label.name}\``).join(', ') || '-';
                 commentBody += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
@@ -99,35 +100,18 @@ jobs:
 
               commentBody += "\n Please review these similar issues before proceeding!";
 
-              // Fetch existing comments on the issue
-              const { data: comments } = await github.rest.issues.listComments({
+              console.log('Creating comment with similar issues');
+
+              await github.rest.issues.createComment({
                 owner,
                 repo,
-                issue_number: issueNumber
+                issue_number: issueNumber,
+                body: commentBody
               });
 
-              // Check if a comment with the "Similar Issues Found" header already exists
-              const existingComment = comments.find(comment => comment.body.startsWith("🔍 **Similar Issues Found**"));
-
-              if (existingComment) {
-                // Update the existing comment
-                await github.rest.issues.updateComment({
-                  owner,
-                  repo,
-                  comment_id: existingComment.id,
-                  body: commentBody
-                });
-                console.log('Updated existing comment with similar issues');
-              } else {
-                // Create a new comment
-                await github.rest.issues.createComment({
-                  owner,
-                  repo,
-                  issue_number: issueNumber,
-                  body: commentBody
-                });
-                console.log('Created new comment with similar issues');
-              }
+              console.log('Comment created successfully');
             } else {
               console.log('No similar issues found - no comment needed');
             }
+
+```
