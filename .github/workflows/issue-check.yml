@@ -2,16 +2,17 @@ name: Check Similar Issues
 
 permissions:
   issues: write
-  
+
 on:
   issues:
-    types: [opened]
+    types: [opened, labeled]
 
 jobs:
   check-similar:
     runs-on: ubuntu-latest
     steps:
       - name: Check for similar issues
+        if: github.event.action == 'opened' || (github.event.action == 'labeled' && github.event.label.name == 'check for related')
         uses: actions/github-script@v7
         with:
           script: |
