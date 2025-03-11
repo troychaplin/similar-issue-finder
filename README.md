@@ -16,6 +16,9 @@ To use this action, ensure you have the following workflow file in your reposito
 
 ```yml
 name: Check Similar Issues
+permissions:
+  issues: write
+
 on:
   issues:
     types: [opened]
@@ -27,12 +30,13 @@ jobs:
       - name: Check for similar issues
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issueTitle = context.payload.issue.title;
             const issueNumber = context.payload.issue.number;
             const repo = context.repo.repo;
             const owner = context.repo.owner;
+
+            console.log(`Checking for issues similar to: "${issueTitle}" (Issue #${issueNumber})`);
 
             // Fetch all open issues
             const { data: issues } = await github.rest.issues.listForRepo({
@@ -42,25 +46,75 @@ jobs:
               per_page: 50
             });
 
-            const similarIssues = issues.filter(issue =>
-              issue.number !== issueNumber &&
-              issue.title.toLowerCase().includes(issueTitle.toLowerCase().split(" ")[0]) // Basic similarity check
-            );
+            console.log(`Found ${issues.length} total open issues`);
 
-            if (similarIssues.length > 0) {
-              let commentBody = "🔍 **Similar issues found:**\n";
-              similarIssues.forEach(issue => {
-                commentBody += `- [#${issue.number}](${issue.html_url}) - ${issue.title}\n`;
+            // Common words to ignore
+            const commonWords = new Set([
+              'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+              'is', 'are', 'was', 'were', 'will', 'be', 'has', 'have', 'had',
+              'this', 'that', 'these', 'those', 'it', 'its', 'with', 'from'
+            ]);
+
+            // Split and clean the title words
+            const titleWords = issueTitle
+              .toLowerCase()
+              .split(/\s+/)
+              .filter(word => {
+                // Remove common words and require words to be at least 3 characters
+                return !commonWords.has(word) && word.length > 2;
               });
 
-              commentBody += "\nPlease check these before proceeding! 🚀";
+            console.log(`Keywords from new issue: ${titleWords.join(', ')}`);
 
+            const similarIssues = issues.filter(issue => {
+              if (issue.number === issueNumber) return false;
+              
+              const otherTitle = issue.title.toLowerCase();
+              const otherWords = otherTitle.split(/\s+/);
+              
+              // Count how many words match
+              const matchingWords = titleWords.filter(word => 
+                otherWords.includes(word)
+              );
+              
+              // Require at least 2 matching words or 1 if the title only has 1 significant word
+              const minMatchesNeeded = titleWords.length === 1 ? 1 : 2;
+              const isMatch = matchingWords.length >= minMatchesNeeded;
+              
+              if (isMatch) {
+                console.log(`Match found: Issue #${issue.number} - "${issue.title}"`);
+                console.log(`Matching words: ${matchingWords.join(', ')}`);
+              }
+              
+              return isMatch;
+            });
+
+            console.log(`Found ${similarIssues.length} similar issues`);
+
+            if (similarIssues.length > 0) {
+              let commentBody = "🔍 **Similar Issues Found**\n\n";
+              commentBody += "| Issue | Summary | Labels |\n";
+              commentBody += "|-------|---------|--------|\n";
+              
+              similarIssues.forEach(issue => {
+                const labels = issue.labels.map(label => `\`${label.name}\``).join(', ') || '-';
+                commentBody += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
+              });
+
+              commentBody += "\n Please review these similar issues before proceeding!";
+
+              console.log('Creating comment with similar issues');
+              
               await github.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: issueNumber,
                 body: commentBody
               });
+              
+              console.log('Comment created successfully');
+            } else {
+              console.log('No similar issues found - no comment needed');
             }
 ```
 
