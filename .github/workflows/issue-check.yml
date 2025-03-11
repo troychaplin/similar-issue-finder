@@ -64,24 +64,24 @@ jobs:
 
             const similarIssues = issues.filter(issue => {
               if (issue.number === issueNumber) return false;
-              
+
               const otherTitle = issue.title.toLowerCase();
               const otherWords = otherTitle.split(/\s+/);
-              
+
               // Count how many words match
-              const matchingWords = titleWords.filter(word => 
+              const matchingWords = titleWords.filter(word =>
                 otherWords.includes(word)
               );
-              
+
               // Require at least 2 matching words or 1 if the title only has 1 significant word
               const minMatchesNeeded = titleWords.length === 1 ? 1 : 2;
               const isMatch = matchingWords.length >= minMatchesNeeded;
-              
+
               if (isMatch) {
                 console.log(`Match found: Issue #${issue.number} - "${issue.title}"`);
                 console.log(`Matching words: ${matchingWords.join(', ')}`);
               }
-              
+
               return isMatch;
             });
 
@@ -89,25 +89,25 @@ jobs:
 
             if (similarIssues.length > 0) {
               let commentBody = "🔍 **Similar Issues Found**\n\n";
-              commentBody += "| Issue | Summary | Labels |\n";
-              commentBody += "|-------|---------|--------|\n";
-              
+              commentBody += "| Reviewed | Issue | Summary | Labels |\n";
+              commentBody += "|----------|-------|---------|--------|\n";
+
               similarIssues.forEach(issue => {
                 const labels = issue.labels.map(label => `\`${label.name}\``).join(', ') || '-';
-                commentBody += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
+                commentBody += `| [ ] | [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
               });
 
               commentBody += "\n Please review these similar issues before proceeding!";
 
               console.log('Creating comment with similar issues');
-              
+
               await github.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: issueNumber,
                 body: commentBody
               });
-              
+
               console.log('Comment created successfully');
             } else {
               console.log('No similar issues found - no comment needed');
