@@ -16,6 +16,18 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            // Simple function to get word stem (handles basic plurals and common endings)
+            function getWordStem(word) {
+              word = word.toLowerCase();
+              // Handle plurals and common endings
+              if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
+              if (word.endsWith('es')) return word.slice(0, -2);
+              if (word.endsWith('s')) return word.slice(0, -1);
+              if (word.endsWith('ing')) return word.slice(0, -3);
+              if (word.endsWith('ed')) return word.slice(0, -2);
+              return word;
+            }
+
             const issueTitle = context.payload.issue.title;
             const issueNumber = context.payload.issue.number;
             const repo = context.repo.repo;
@@ -48,27 +60,32 @@ jobs:
             const commonWords = new Set([
               'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
               'is', 'are', 'was', 'were', 'will', 'be', 'has', 'have', 'had',
-              'this', 'that', 'these', 'those', 'it', 'its', 'with', 'from'
+              'this', 'that', 'these', 'those', 'it', 'its', 'with', 'from',
+              'not', 'what', 'where', 'when', 'why', 'how', 'all', 'any', 'both',
+              'each', 'few', 'more', 'most', 'other', 'some', 'such', 'than'
             ]);
 
-            // Split and clean the title words
+            // Split and clean the title words, then get their stems
             const titleWords = issueTitle
               .toLowerCase()
               .split(/\s+/)
               .filter(word => {
                 // Remove common words and require words to be at least 3 characters
                 return !commonWords.has(word) && word.length > 2;
-              });
+              })
+              .map(word => getWordStem(word));
 
-            console.log(`Keywords from new issue: ${titleWords.join(', ')}`);
+            console.log(`Keywords from new issue (stemmed): ${titleWords.join(', ')}`);
 
             const similarIssues = issues.filter(issue => {
               if (issue.number === issueNumber) return false;
 
               const otherTitle = issue.title.toLowerCase();
-              const otherWords = otherTitle.split(/\s+/);
+              const otherWords = otherTitle
+                .split(/\s+/)
+                .map(word => getWordStem(word));
 
-              // Count how many words match
+              // Count how many stemmed words match
               const matchingWords = titleWords.filter(word =>
                 otherWords.includes(word)
               );
@@ -79,7 +96,7 @@ jobs:
 
               if (isMatch) {
                 console.log(`Match found: Issue #${issue.number} - "${issue.title}"`);
-                console.log(`Matching words: ${matchingWords.join(', ')}`);
+                console.log(`Matching word stems: ${matchingWords.join(', ')}`);
               }
 
               return isMatch;
@@ -90,7 +107,7 @@ jobs:
             if (similarIssues.length > 0) {
               let commentBody = "🔍 **Similar Issues Found**\n\n";
               commentBody += "The following issues have similar titles and may be duplicates. Please review these before proceeding.\n\n";
-              commentBody += "**NOTE:** this automated check only looks for 2 matching words in the summary, so it may miss some issues that are similar.\n\n";
+              commentBody += "**NOTE:** this automated check looks for matching words (including variations like plurals) in the summary.\n\n";
               commentBody += "| Issue | Summary | Labels |\n";
               commentBody += "|-------|---------|--------|\n";
 
