@@ -89,12 +89,12 @@ jobs:
 
             if (similarIssues.length > 0) {
               let commentBody = "🔍 **Similar Issues Found**\n\n";
-              commentBody += "| Reviewed | Issue | Summary | Labels |\n";
-              commentBody += "|----------|-------|---------|--------|\n";
+              commentBody += "| Issue | Summary | Labels |\n";
+              commentBody += "|-------|---------|--------|\n";
 
               similarIssues.forEach(issue => {
                 const labels = issue.labels.map(label => `\`${label.name}\``).join(', ') || '-';
-                commentBody += `| [ ] | [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
+                commentBody += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
               });
 
               commentBody += "\n Please review these similar issues before proceeding!";
