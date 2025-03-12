@@ -45,6 +45,35 @@ jobs:
               return word;
             }
 
+            // Function to check if a label is a version label
+            function isVersionLabel(label) {
+              // Match patterns like: 6.7, 5.6, etc.
+              return /^\d+\.\d+$/.test(label.name);
+            }
+
+            // Function to create a table with issues
+            function createIssueTable(issues, versionTableOnly = false) {
+              if (issues.length === 0) return '';
+              
+              let table = "| Issue | Summary | Labels |\n";
+              table += "|-------|---------|--------|\n";
+              
+              issues.forEach(issue => {
+                const labels = versionTableOnly 
+                  ? issue.labels
+                      .filter(label => isVersionLabel(label))
+                      .map(label => `\`${label.name}\``)
+                      .join(', ') || '-'
+                  : issue.labels
+                      .map(label => `\`${label.name}\``)
+                      .join(', ') || '-';
+                
+                table += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
+              });
+              
+              return table;
+            }
+
             const issueTitle = context.payload.issue.title;
             const issueNumber = context.payload.issue.number;
             const repo = context.repo.repo;
@@ -119,21 +148,33 @@ jobs:
               return isMatch;
             });
 
-            console.log(`Found ${similarIssues.length} similar issues`);
+            // Split issues into version-labeled and non-version-labeled
+            const versionIssues = similarIssues.filter(issue => 
+              issue.labels.some(label => isVersionLabel(label))
+            );
+            const otherIssues = similarIssues.filter(issue => 
+              !issue.labels.some(label => isVersionLabel(label))
+            );
+
+            console.log(`Found ${versionIssues.length} version-labeled and ${otherIssues.length} other similar issues`);
 
             if (similarIssues.length > 0) {
               let commentBody = "🔍 **Similar Issues Found**\n\n";
               commentBody += "The following issues have similar titles and may be duplicates. Please review these before proceeding.\n\n";
-              commentBody += "**NOTE:** this automated check looks for matching words (including variations like plurals) in the summary.\n\n";
-              commentBody += "| Issue | Summary | Labels |\n";
-              commentBody += "|-------|---------|--------|\n";
 
-              similarIssues.forEach(issue => {
-                const labels = issue.labels.map(label => `\`${label.name}\``).join(', ') || '-';
-                commentBody += `| [#${issue.number}](${issue.html_url}) | ${issue.title} | ${labels} |\n`;
-              });
+              if (versionIssues.length > 0) {
+                commentBody += "### 📌 Version-Specific Issues\n\n";
+                commentBody += createIssueTable(versionIssues, true);
+                commentBody += "\n";
+              }
 
-              commentBody += "\n Please review these similar issues before proceeding!";
+              if (otherIssues.length > 0) {
+                commentBody += "### 📑 Other Related Issues\n\n";
+                commentBody += createIssueTable(otherIssues, false);
+                commentBody += "\n";
+              }
+
+              commentBody += "\n⚠️ Please review these similar issues before proceeding!";
 
               console.log('Creating comment with similar issues');
 
